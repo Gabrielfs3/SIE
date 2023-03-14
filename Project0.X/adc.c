@@ -59,13 +59,7 @@ void ADCon(void)
 
 uint16_t ADCReadManual(void)
 {
-    AD1CON1bits.ASAM = 0; // Start conversion
-    AD1CON1bits.SAMP = 0;
-    
-    while(AD1CON1bits.DONE == 0);
-    AD1CON1bits.DONE = 0;
-    
-    return (ADC1BUF0 * 3.3) / 1023;
+    // TBD
 }
 
 uint16_t ADCReadRetentive(void)
