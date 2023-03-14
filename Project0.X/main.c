@@ -38,7 +38,7 @@
 #include "pwm.h"
 
 /**
- * \brief Example of a transfer function. 
+ * \brief Example. 
  * 
  * The example provided is a "dummy" transfer funtion, that only performs a 
  * scale change: converts an input voltage in the range [0V..2V] applied to a 
@@ -47,8 +47,7 @@
  * \param inVal     Value returned by the ADC
  * \return          Converted value in the range 0..100 for a input
  */
-uint16_t tf_direct(uint16_t inVal);
-
+uint16_t pwm_direct(uint16_t inVal);
 
 /**
  * Average of n samples
@@ -58,15 +57,22 @@ uint16_t tf_direct(uint16_t inVal);
  * @param inVal     value read in the analog input (0 to 1023)
  * @return      average of the last n input values, scaled for a range 0..100.
  */
-uint16_t tf_avgNSamples(uint16_t inVal);
+float avgNSamples(uint16_t inVal);
+
+/**
+ * \brief Example of a transfer function. 
+ * 
+ * The example provided is a "dummy" transfer funtion, that only performs a 
+ * scale change: converts an input voltage in the range [0V..2V] applied to a 
+ * ADC in the range [0V..3.3V] to a value for 0 to 3V3. 
+ * 
+ * \param inVal     Value returned by the ADC
+ * \return          Converted value in the range 0..3V3 for a input
+ */
+float adc_direct(uint16_t inVal);
 
 int main(void) {
 
-    /*
-     * Function pointer to select the transfer functions
-     */
-    uint16_t (*transferFunction)(uint16_t);
-    
     /**************************************************************
      *
      * Definition of constants 
@@ -116,12 +122,7 @@ int main(void) {
      *
      */
     printf("Sampling freq: %d\r\nPWM freq.: %d\r\n\n",SampFreq, PWMFreq);
-    
-    /*
-     * Set the transfer function to point to the desired function.
-     */
-    transferFunction = tf_avgNSamples;
-    
+       
     /****************************************************************
      * 
      * Main cycle
@@ -132,25 +133,21 @@ int main(void) {
         
         /* Read ADC */
         res = ADCReadRetentive();
-        
+                   
         /* Compute output val */
-        uint16_t adc = (*transferFunction)(res);
+        float avg = avgNSamples(res);
         
-        uint16_t adc_value= (res*3.3)/1023;   // Convert to 0..3.3V 
-        uint16_t PWMval=(res*100)/1023;     //formula para a obten??o do dutycycle de 0 a 100 
+        float adc_value = adc_direct(res);   // Convert to 0..3.3V 
         
-        printf("\rADC VALUE: %d - PWM VALUE : %d",adc_value, PWMval);
+        uint16_t PWMval = pwm_direct(res);     //formula para a obter o dutycycle de 0 a 100 
+                
+        printf("\rAVG: %1.2f - ADC VALUE: %1.2f - PWM VALUE : %d",avg, adc_value, PWMval);
         /* Set output */
         PWMsetDutyCycle(PWMval);
         
         /* Toggle control pin at sampling frequency */
         LATAINV = 0x0008;
         
-        if(i%1000==0)
-        {
-            PORTAbits.RA3 = !PORTAbits.RA3;
-            i++;
-        }
     }
 }
 
@@ -163,7 +160,7 @@ int main(void) {
  * @param inVal     value read in the analog input (0 to 1023)
  * @return          input value, range adjusted to 0..100
  */
-uint16_t tf_direct(uint16_t inVal)
+uint16_t pwm_direct(uint16_t inVal)
 {
     return inVal*100/1024; 
 }
@@ -176,13 +173,13 @@ uint16_t tf_direct(uint16_t inVal)
  * @param inVal     value read in the analog input (0 to 1023)
  * @return      average of the last n input values, scaled for a range 0..100.
  */
-uint16_t tf_avgNSamples(uint16_t inVal) {
+float avgNSamples(uint16_t inVal) {
     
-#define nSamples 3 
+#define nSamples 10
     
-    uint16_t val; 
+    float val; 
     
-    static uint16_t Samples[nSamples];
+    static float Samples[nSamples];
     static int pointer; 
     
     /*
@@ -192,7 +189,7 @@ uint16_t tf_avgNSamples(uint16_t inVal) {
     pointer=(pointer)%nSamples; 
     
     /* Update Samples array */
-    Samples[pointer] = inVal*100/1024; 
+    Samples[pointer] = inVal*3.3/1024; 
     
     /* Compute the average */
     val = 0; 
@@ -202,4 +199,17 @@ uint16_t tf_avgNSamples(uint16_t inVal) {
     }
    
     return val/nSamples; 
+}
+
+/**
+ * Direct transfer function 
+ * 
+ * "Echoes" the input value to the output, adjusting the output range to 0..3V3
+ * 
+ * @param inVal     value read in the analog input (0 to 1023)
+ * @return          input value, range adjusted to 0..3V3
+ */
+float adc_direct(uint16_t inVal)
+{
+    return inVal*3.3/1024; 
 }
