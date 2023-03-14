@@ -41,10 +41,9 @@ void ADCconfig(uint8_t SourceChannel, ADCTriggerSrc_t ConversionTriggerSource, u
     AD1CON1bits.CLRASAM = 1; //Stop conversion when 1st A/D converter interrupt is generated and clears ASAM bit automatically
     AD1CON1bits.FORM = 0; // Integer 16 bit output format
     AD1CON2bits.VCFG = 0; // VR+=AVdd; VR-=AVss
-    AD1CON2bits.SMPI = 0; // Number (+1) of consecutive conversions, stored in ADC1BUF0...ADCBUF{SMPI}
+    AD1CON2bits.SMPI = 1; // Number (+1) of consecutive conversions, stored in ADC1BUF0...ADCBUF{SMPI}
     AD1CON3bits.ADRC = 1; // ADC uses internal RC clock
     AD1CON3bits.SAMC = SampleTime; // Sample time is 16TAD ( TAD = 100ns)
-    
     
 }
 
@@ -71,10 +70,12 @@ uint16_t ADCReadManual(void)
 
 uint16_t ADCReadRetentive(void)
 {
+    uint16_t ret;
+    
     AD1CON1bits.ASAM = 1; // Start conversion
     
     while(AD1CON1bits.DONE == 0);
     
-    return (ADC1BUF0 * 3.3) / 1023; // convert to 0..3.3V and return
+    return ADC1BUF0; // convert to 0..3.3V and return
     //return ADC1BUF0;
 }
