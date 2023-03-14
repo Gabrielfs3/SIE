@@ -72,7 +72,7 @@ int main(void) {
      * Definition of constants 
      *
      */
-    const int SampFreq = 1;       /**< Sampling frequency (in Hz) */
+    const int SampFreq = 100;       /**< Sampling frequency (in Hz) */
     const int PWMFreq = 2000;       /**< PWM frequency (in Hz) */
 
     /************************************************************** 
@@ -96,12 +96,12 @@ int main(void) {
      * Source: Chan 0, Source: Timer3 
      */
     ADCconfig(0, SrcTimer3, 0);
-    ADCon();
     /*
      * Set Timer3 to run at required sampling frequency 
      */
     TypeBTimer16bitSetFreq(Timer3, SampFreq);
-
+    
+    ADCon();
     /*
      * Configure PWM
      *
@@ -127,30 +127,28 @@ int main(void) {
      * Main cycle
      */
     int i = 0;
-    
     while (1) {
-        uint16_t res; 
-        printf("TOU NA MAIN\r");
+        uint16_t res;
+        
         /* Read ADC */
         res = ADCReadRetentive();
         
         /* Compute output val */
-        uint16_t PWMval = (*transferFunction)(res);
+        uint16_t adc = (*transferFunction)(res);
         
+        uint16_t adc_value= (res*3.3)/1023;   // Convert to 0..3.3V 
+        uint16_t PWMval=(res*100)/1023;     //formula para a obten??o do dutycycle de 0 a 100 
+        
+        printf("\rADC VALUE: %d - PWM VALUE : %d",adc_value, PWMval);
         /* Set output */
         PWMsetDutyCycle(PWMval);
         
         /* Toggle control pin at sampling frequency */
         LATAINV = 0x0008;
         
-        if(i%100==0)
+        if(i%1000==0)
         {
-            PORTAbits.RA3 = 1;
-            i++;
-        }
-        else
-        {
-            PORTAbits.RA3 = 0;
+            PORTAbits.RA3 = !PORTAbits.RA3;
             i++;
         }
     }
@@ -169,7 +167,6 @@ uint16_t tf_direct(uint16_t inVal)
 {
     return inVal*100/1024; 
 }
-
 
 /**
  * Average of n samples
