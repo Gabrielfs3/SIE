@@ -19,6 +19,7 @@
 
 
 #include <xc.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include "uart.h"
@@ -70,12 +71,13 @@ int UartInit(uint64_t pbclock, uint32_t br)
     U1STAbits.ADM_EN = 0; // No automatic address detection
     U1STAbits.UTXISEL = 0; // Interrupt when TX buffer has at least 1 empty position
     U1STAbits.UTXINV = 0; // Idle logic value is 1
-    
+    /*
     // UART Interrupts
     IPC6bits.U1IP = 2;      // Interrupt Priority
     U1STAbits.URXISEL = 0;  // RX Interrupt mode 	
     IFS0bits.U1RXIF = 0;    // Reset RX Interrupt Flag
     IEC0bits.U1RXIE = 1;    // Enable RX Interrupt
+    */
 
     // Configuration done. Enable.
     U1AMODEbits.ON = 1;

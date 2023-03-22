@@ -5,14 +5,17 @@
  * Date 02 February 2023, 08:37
  */
 
- 
- #include "pic32conf.h"
+#include <xc.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <math.h>
+#include "pic32conf.h"
   
- const uint8_t OK = 0;
- const uint8_t NOK = 1;
+const uint8_t OK = 0;
+const uint8_t NOK = 1;
   
   
- const long int PBCLK_F_HZ = 40000000;
+const long int PBCLK_F_HZ = 40000000;
  
 void INTconfig()
 {
