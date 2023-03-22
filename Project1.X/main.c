@@ -1,8 +1,9 @@
-/* Configuration bits */
+
 #include "config_bits.h"
 #include <xc.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/attribs.h>
 
 #include "uart.h"
@@ -24,11 +25,11 @@ const int PWMFreq = 30000;       /**< PWM frequency (in Hz) */
      *
      */
 
+char dir; // direction inserted by user
 int rpm; // rpm inserted by user
 int ang = 0; // angle based on the motor direction
 int imp; // encoder impulses
 int speed = 0; // motor actual speed
-char dir;
 
 /**************************************************************
      *
@@ -36,7 +37,6 @@ char dir;
      *
      */
 
-uint16_t pwm_direct(uint16_t inVal);
 void change_vel();
 void change_dir();
 void menu();
@@ -106,7 +106,7 @@ int main(void){
     while (1)
     {
         char in;
-        printf("\r>> ");
+        printf("\r\r>> ");
         if(GetChar(&in) == UART_SUCCESS)
         {
             switch(in)
@@ -137,6 +137,11 @@ int main(void){
     return 0;
 }
 
+/********************************************************************
+* Overview:     External Interruptions
+* Input:		Pin 2
+* Note:         Usage of the Encoder CHA to get the angle and the impulses
+********************************************************************/
 void __ISR (_EXTERNAL_1_VECTOR) IntISR(void)
 {
     if(PORTEbits.RE0 == 1)
@@ -155,20 +160,25 @@ void __ISR (_EXTERNAL_1_VECTOR) IntISR(void)
     IFS0bits.INT1IF = 0;    // Reset Int1 Interrupt Flag
 }
 
-// Timer 3 Interrupt - 10 Hz
+/********************************************************************
+* Overview:     Timer 3 Interrupt
+* Note:         Calculate the speed with the impulses of CHA
+********************************************************************/
 void __ISR (_TIMER_3_VECTOR) T3ISR(void)
 {
+    // calculate real motor speed using the inpulse counter from CHA
     speed = imp * 60 * SampFreq /360;
-    imp = 0; // reset impulse counter
+    // reset impulse counter
+    imp = 0; 
     
     IFS0bits.T3IF = 0; // Reset interruption flag
 }
 
-uint16_t pwm_direct(uint16_t inVal)
-{
-    return inVal*100/1024; 
-}
-
+/********************************************************************
+* Function:     change_vel()
+* Overview:     Get motor speed from user
+* Note:		 	No notes
+********************************************************************/
 void change_vel()
 {
     char rpm1,rpm2;
@@ -184,6 +194,11 @@ void change_vel()
     menu();
 }
 
+/********************************************************************
+* Function:     change_dir()
+* Overview:     Get motor direction from user
+* Note:		 	No notes
+********************************************************************/
 void change_dir()
 {
     printf("\n\rDir (+/-) = ");
@@ -192,6 +207,11 @@ void change_dir()
     menu();
 }
 
+/********************************************************************
+* Function:     menu()
+* Overview:     show the user menu
+* Note:		 	No notes
+********************************************************************/
 void menu()
 {
     system("clear");
