@@ -6,8 +6,8 @@
   
 const uint8_t OK = 0;
 const uint8_t NOK = 1;
-  
-  
+    
+
 const long int PBCLK_F_HZ = 40000000;
  
 void INTconfig()

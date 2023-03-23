@@ -3,7 +3,6 @@
 #include <xc.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <sys/attribs.h>
 
 #include "uart.h"
@@ -16,7 +15,7 @@
      * Definition of constants 
      *
      */
-const int SampFreq = 10;       /**< Sampling frequency (in Hz) */
+const int SampFreq = 10;        /**< Sampling frequency (in Hz) */
 const int PWMFreq = 30000;       /**< PWM frequency (in Hz) */
 
 /**************************************************************
@@ -30,6 +29,8 @@ int rpm; // rpm inserted by user
 int ang = 0; // angle based on the motor direction
 int imp; // encoder impulses
 int speed = 0; // motor actual speed
+
+bool flag = true;
 
 /**************************************************************
      *
@@ -76,7 +77,7 @@ int main(void){
      * PWM frequency is PWMFreq
      */
     PWMconfigFreq(PWMFreq);
-    PWMsetDutyCycle(0);
+    PWMsetDutyCycle(16);            // 10rpm - 60% duty ; 50rpm - 85% duty
     
     /*
      * Configure external interrupts
@@ -106,25 +107,23 @@ int main(void){
     while (1)
     {
         char in;
-        printf("\r\r>> ");
+        //printf("\r\r>> ");
         if(GetChar(&in) == UART_SUCCESS)
         {
             switch(in)
             {
                 case('p'):
-                    printf("p");
                     PORTEbits.RE1 = 1;
                     break;
                 case('s'):
-                    printf("s");
                     PORTEbits.RE1 = 0;
                     break;
                 case('v'):
-                    printf("v");
+                    flag = false;
                     change_vel();
                     break;
                 case('d'):
-                    printf("d");
+                    flag = false;
                     change_dir();
                     break;
             }
@@ -152,7 +151,7 @@ void __ISR (_EXTERNAL_1_VECTOR) IntISR(void)
         ang--; 
     
     // 
-    ang %= 360;
+    ang = ang % 360;
     
     // increment impulse counter
     imp++; 
@@ -168,9 +167,13 @@ void __ISR (_TIMER_3_VECTOR) T3ISR(void)
 {
     // calculate real motor speed using the inpulse counter from CHA
     speed = imp * 60 * SampFreq /360;
+    
     // reset impulse counter
     imp = 0; 
-    
+    printf("\33[2K");
+    if(flag == true)
+        printf("\r\rRPM: %2d  ANGLE: %3d",speed ,ang);
+        
     IFS0bits.T3IF = 0; // Reset interruption flag
 }
 
@@ -182,15 +185,22 @@ void __ISR (_TIMER_3_VECTOR) T3ISR(void)
 void change_vel()
 {
     char rpm1,rpm2;
-    printf("\n\r'0' will stop the motor\n\rRPM = ");
+    printf("\n\rBelow 10 will stop the motor\n\rChoose velocity: ");
     while(GetChar(&rpm1) != UART_SUCCESS);
-    while(GetChar(&rpm2) != UART_SUCCESS);
+    printf("%c",rpm1);
+    if(rpm1 != '0')
+        while(GetChar(&rpm2) != UART_SUCCESS);
+    printf("%c",rpm2);
+    
     rpm = atoi(&rpm1);
     if(rpm > 50)
         rpm = 50;
     else if(rpm < 10)
-        rpm = 0;
-    printf("%d\n",rpm);
+    {
+        speed = 0;
+        ang = 0;
+        PWMsetDutyCycle(50); // stop the motor
+    }
     menu();
 }
 
@@ -214,7 +224,7 @@ void change_dir()
 ********************************************************************/
 void menu()
 {
-    system("clear");
     printf("\rMenu: \n");
     printf("\rp - start the circuit\n\rs - stop the circuit\n\rv - motor velocity\n\rd - motor direction\n\r");
+    flag = true;
 }
