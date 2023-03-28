@@ -42,8 +42,8 @@ void Timer3Setup(TypeBTimerPreScalers_t Prescaler, uint32_t PR3val)
     PR3 = PR3val; // PR3 value
     TMR3 = 0; // Reset timer T3 count register
     
-    IFS0bits.T3IF = 0;		// Reset Timer 3 Interrupt Flag
     IPC3bits.T3IP = 2;		// Interrupt Priority
+    IFS0bits.T3IF = 0;		// Reset Timer 3 Interrupt Flag
     IEC0bits.T3IE = 1;		// Enable Timer 3 Interrupt
 }
 

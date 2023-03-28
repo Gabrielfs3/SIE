@@ -16,7 +16,7 @@
      *
      */
 const int SampFreq = 10;        /**< Sampling frequency (in Hz) */
-const int PWMFreq = 30000;       /**< PWM frequency (in Hz) */
+const int PWMFreq = 20000;       /**< PWM frequency (in Hz) */
 
 /**************************************************************
      *
@@ -24,13 +24,22 @@ const int PWMFreq = 30000;       /**< PWM frequency (in Hz) */
      *
      */
 
-char dir; // direction inserted by user
-int rpm; // rpm inserted by user
-int ang = 0; // angle based on the motor direction
-int imp; // encoder impulses
-int speed = 0; // motor actual speed
+char dir = '+'; // direction inserted by user
+int rpm = 0;    // rpm inserted by user
+char actual_dir = '+';     // current direction of the motor
+double ang = 0;    // angle based on the motor direction
+int imp;        // encoder impulses
+int speed = 0;  // motor actual speed
 
-bool flag = true;
+bool flag = true; // just a print flag for the menu.
+
+double Ki = 0.00001;
+double Kp = 0.008;
+
+int error = 0;
+double p = 0.0, i = 0.0;
+double duty=50;
+    
 
 /**************************************************************
      *
@@ -41,6 +50,7 @@ bool flag = true;
 void change_vel();
 void change_dir();
 void menu();
+void pi_controller();
 
 int main(void){
     /************************************************************** 
@@ -51,7 +61,7 @@ int main(void){
 
     /* Configure UART */
     UartInit(PBCLK_F_HZ, 115200);
-    printf("%s, %s\r\n", __DATE__, __TIME__);
+    printf("\n\n\r%s, %s\r\n", __DATE__, __TIME__);
     
     /* Set Interrupt Controller for multi-vector mode */
     INTCONSET = _INTCON_MVEC_MASK;
@@ -77,7 +87,7 @@ int main(void){
      * PWM frequency is PWMFreq
      */
     PWMconfigFreq(PWMFreq);
-    PWMsetDutyCycle(16);            // 10rpm - 60% duty ; 50rpm - 85% duty
+    //PWMsetDutyCycle(100);
     
     /*
      * Configure external interrupts
@@ -128,9 +138,10 @@ int main(void){
                     break;
             }
         }
-        else
+        if(flag == true)
         {
-            
+            //printf("\33[2K");
+            printf("\r\rRPM: %d  ANGLE: %3.1f duty: %3.1f", speed, ang, duty);
         }
     }
     return 0;
@@ -141,22 +152,31 @@ int main(void){
 * Input:		Pin 2
 * Note:         Usage of the Encoder CHA to get the angle and the impulses
 ********************************************************************/
-void __ISR (_EXTERNAL_1_VECTOR) IntISR(void)
+void __ISR (_EXTERNAL_0_VECTOR) IntISR(void)
 {
     if(PORTEbits.RE0 == 1)
+    {
     // angle increment of 1 degree if rotating clockwise    
-        ang++; 
+        ang += 0.8571; // 360 graus / 420 impulsos
+    // store the acutal direction  
+        actual_dir = '+';
+    }
     else 
+    {
     // angle dencrement of 1 degree if rotating anti-clockwise
-        ang--; 
+        ang -= 0.8571; // 360 graus / 420 impulsos
+    // store the acutal direction  
+        actual_dir = '-';
+    }
     
-    // 
-    ang = ang % 360;
+    if (ang >= 360 || ang <= -360)
+        ang = 0;
     
+        
     // increment impulse counter
-    imp++; 
+    imp++;
     
-    IFS0bits.INT1IF = 0;    // Reset Int1 Interrupt Flag
+    IFS0bits.INT0IF = 0;    // Reset Int0 Interrupt Flag
 }
 
 /********************************************************************
@@ -166,15 +186,45 @@ void __ISR (_EXTERNAL_1_VECTOR) IntISR(void)
 void __ISR (_TIMER_3_VECTOR) T3ISR(void)
 {
     // calculate real motor speed using the inpulse counter from CHA
-    speed = imp * 60 * SampFreq /360;
+    speed = imp * 60 * SampFreq / 420;
+    
+    if (speed < 10)
+        speed = 0;
     
     // reset impulse counter
     imp = 0; 
-    printf("\33[2K");
-    if(flag == true)
-        printf("\r\rRPM: %2d  ANGLE: %3d",speed ,ang);
+        
+    pi_controller();
         
     IFS0bits.T3IF = 0; // Reset interruption flag
+}
+
+/********************************************************************
+* Function:     pi_controller()
+* Overview:     PI Controller to put the motor at the speed the user typed
+* Note:		 	No notes
+********************************************************************/
+void pi_controller()
+{
+    if(dir == '+')
+        error = -rpm + speed;
+    else if(dir == '-')
+        error = rpm - speed;
+
+    
+    p = (Kp*error);
+    i = (Ki*error);
+    //printf("\rp: %2.1f i: %2.1f",p,i);
+    duty += p + i;
+    
+    //printf(" duty: %f",duty);
+       
+    if(duty > 100)
+        duty = 100;
+    else if(duty < 0)
+        duty = 0;
+    
+    PWMsetDutyCycle(duty);
 }
 
 /********************************************************************
@@ -185,22 +235,19 @@ void __ISR (_TIMER_3_VECTOR) T3ISR(void)
 void change_vel()
 {
     char rpm1,rpm2;
-    printf("\n\rBelow 10 will stop the motor\n\rChoose velocity: ");
+    printf("\n\rBelow 10 will stop the motor.\n\rChoose velocity: ");
     while(GetChar(&rpm1) != UART_SUCCESS);
     printf("%c",rpm1);
     if(rpm1 != '0')
         while(GetChar(&rpm2) != UART_SUCCESS);
-    printf("%c",rpm2);
+    printf("%c\n",rpm2);
     
     rpm = atoi(&rpm1);
     if(rpm > 50)
         rpm = 50;
     else if(rpm < 10)
-    {
-        speed = 0;
-        ang = 0;
-        PWMsetDutyCycle(50); // stop the motor
-    }
+        rpm = 0;
+    //PWMsetDutyCycle(rpm);
     menu();
 }
 

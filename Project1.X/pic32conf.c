@@ -12,10 +12,11 @@ const long int PBCLK_F_HZ = 40000000;
  
 void INTconfig()
 {
-    TRISEbits.TRISE8 = 1;   // Set RE8 as input
-    INTCONbits.INT1EP = 1;  // Generate interrupts
+    TRISDbits.TRISD0 = 1;   // Set RD0 as input
+    ODCDbits.ODCD0=1;//ODC enable
+    INTCONbits.INT0EP = 1;  // Generate interrupts
     
-    IPC1bits.INT1IP = 2;    // Interrupt Priority
-    IFS0bits.INT1IF = 0;    // Reset Int1 Interrupt Flag
-    IEC0bits.INT1IE = 1;    // Enable Int1 Interrupt
+    IFS0bits.INT0IF = 0;    // Reset Int0 Interrupt Flag
+    IPC0bits.INT0IP = 2;    // Interrupt Priority
+    IEC0bits.INT0IE = 1;    // Enable Int0 Interrupt
 }
