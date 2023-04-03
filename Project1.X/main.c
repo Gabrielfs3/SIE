@@ -16,7 +16,7 @@
      *
      */
 const int SampFreq = 10;        /**< Sampling frequency (in Hz) */
-const int PWMFreq = 20000;       /**< PWM frequency (in Hz) */
+const int PWMFreq = 25000;       /**< PWM frequency (in Hz) */
 
 /**************************************************************
      *
@@ -187,9 +187,6 @@ void __ISR (_TIMER_3_VECTOR) T3ISR(void)
 {
     // calculate real motor speed using the inpulse counter from CHA
     speed = imp * 60 * SampFreq / 420;
-    
-    if (speed < 10)
-        speed = 0;
     
     // reset impulse counter
     imp = 0; 
