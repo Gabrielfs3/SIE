@@ -38,6 +38,12 @@ void Timer2ClearEOC(void)
 
 void Timer3Setup(TypeBTimerPreScalers_t Prescaler, uint32_t PR3val)
 {
+    T3CONbits.TON = 0; // Stop the timer
+    
+    IFS0bits.T3IF = 0; // Reset interrupt flag
+    IPC3bits.T3IP = 5; // set interrupt priority  
+    IEC0bits.T3IE = 0; // Enable interrupts
+        
     T3CONbits.TCKPS = Prescaler; // Define pre-scaler
     PR3 = PR3val; // PR3 value
     TMR3 = 0; // Reset timer T3 count register
@@ -62,22 +68,6 @@ void Timer3ClearEOC(void)
 {
     IFS0bits.T3IF=0; // Reset interrupt flag
 }
-
-
-/**
- * \brief Computes the configuration parameters (Prescaler and PR3 value) to configure 
- * a Type B Timer to generate events at frequency Freq_Hz (in Hz)
- * 
- * \param Freq_Hz       Desired frequency, in Hz
- * \param pPreScaler     Prescaler index (bits to be programmed in PSCK)
- * \param pPRxVal        Value for PRx 
- */
-int TypeBTimer16bitGetConfigFromFreq(uint32_t Freq_Hz, TypeBTimerPreScalers_t *pPreScaler, uint32_t *pPRxVal)
-{
-    
-}
-
-
 
 /**
  * \brief Sets the counting frequency of a Type B Timer

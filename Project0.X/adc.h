@@ -64,13 +64,6 @@ void ADCoff(void);
 void ADCon(void);
 
 /**
- * 
- * \brief Reads ADC in manual mode. 
- * Starts conversion and returns conversion value
- */
-uint16_t ADCReadManual(void);
-
-/**
  * \brief Reads ADC with automatic trigger (any mode different from SrcManual)
  * 
  * Requires previous configuration with ADCconfig(). 

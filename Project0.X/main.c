@@ -78,7 +78,7 @@ int main(void) {
      * Definition of constants 
      *
      */
-    const int SampFreq = 100;       /**< Sampling frequency (in Hz) */
+    const int SampFreq = 200;       /**< Sampling frequency (in Hz) */
     const int PWMFreq = 2000;       /**< PWM frequency (in Hz) */
 
     /************************************************************** 
@@ -95,17 +95,18 @@ int main(void) {
 
     TRISAbits.TRISA3 = 0;
     LATAbits.LATA3 = 1;
-
+    
+    /*
+     * Set Timer3 to run at required sampling frequency 
+     */
+    TypeBTimer16bitSetFreq(Timer3, SampFreq);
+    
     /*
      * ADC Configuration 
      * 
      * Source: Chan 0, Source: Timer3 
      */
     ADCconfig(0, SrcTimer3, 0);
-    /*
-     * Set Timer3 to run at required sampling frequency 
-     */
-    TypeBTimer16bitSetFreq(Timer3, SampFreq);
     
     ADCon();
     /*
@@ -115,8 +116,6 @@ int main(void) {
      */
     PWMconfigFreq(PWMFreq);
     
-    PWMsetDutyCycle(20);
-
     /*
      * Print the system configuration 
      *
@@ -127,27 +126,30 @@ int main(void) {
      * 
      * Main cycle
      */
-    int i = 0;
+    
+    uint16_t res, PWMval;
+    float adc_value, avg;
     while (1) {
-        uint16_t res;
-        
+        while(IFS0bits.T3IF == 0);
+                
         /* Read ADC */
         res = ADCReadRetentive();
+        
+        adc_value = adc_direct(res);   // Convert to 0..3.3V 
                    
         /* Compute output val */
-        float avg = avgNSamples(res);
-        
-        float adc_value = adc_direct(res);   // Convert to 0..3.3V 
-        
-        uint16_t PWMval = pwm_direct(res);     //formula para a obter o dutycycle de 0 a 100 
+        avg = avgNSamples(res);
+                
+        PWMval = pwm_direct(res);     //formula para a obter o dutycycle de 0 a 100 
                 
         printf("\rAVG: %1.2f - ADC VALUE: %1.2f - PWM VALUE : %d",avg, adc_value, PWMval);
         /* Set output */
         PWMsetDutyCycle(PWMval);
         
-        /* Toggle control pin at sampling frequency */
-        LATAINV = 0x0008;
+        IFS0bits.T3IF = 0;
         
+        /* Toggle control pin at sampling frequency */
+        LATAbits.LATA3 = !LATAbits.LATA3;
     }
 }
 
@@ -185,11 +187,10 @@ float avgNSamples(uint16_t inVal) {
     /*
      * Move pointer to next position 
      */
-    pointer++;
-    pointer=(pointer)%nSamples; 
+    pointer = (pointer+1) % nSamples; 
     
     /* Update Samples array */
-    Samples[pointer] = inVal*3.3/1024; 
+    Samples[pointer] = inVal*100/3.3; 
     
     /* Compute the average */
     val = 0; 
@@ -211,5 +212,5 @@ float avgNSamples(uint16_t inVal) {
  */
 float adc_direct(uint16_t inVal)
 {
-    return inVal*3.3/1024; 
+    return inVal*3.3/1024;
 }
